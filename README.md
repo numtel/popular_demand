@@ -2,7 +2,7 @@
 
 Very much not production ready
 
-> Branded as UnitedConsumersOfAmerica.com [Original gist](https://gist.github.com/numtel/5156fb61da89862aaa5160a2a02dde89) [Consumer Union Manifesto](https://gist.github.com/numtel/380d391ed5b324fc645a30a91a768550)
+> Branded as [UnitedConsumersOfAmerica.com](https://unitedconsumersofamerica.com/en/) | [Original gist](https://gist.github.com/numtel/5156fb61da89862aaa5160a2a02dde89) | [Consumer Union Manifesto](https://gist.github.com/numtel/380d391ed5b324fc645a30a91a768550) | [Screenshots](https://imgur.com/a/wTKe04p)
 
 A moderated, threaded discussion board using Django with crowdfunding functionality through Stripe
 
@@ -13,7 +13,7 @@ bids may then be funded by the migration of funds from the original
 message to the bid message. The bidder receives the payment when their
 bid-specified payment threshold is met.
 
-The live demo at UnitedConsumersOfAmerica.com has crowdfunding disabled because Stripe didn't accept my Atlas application.
+The live demo at [UnitedConsumersOfAmerica.com](https://unitedconsumersofamerica.com/en/) has crowdfunding disabled because Stripe didn't accept my Atlas application.
 
 ## Installation
 
