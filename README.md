@@ -36,5 +36,6 @@ The live demo at [UnitedConsumersOfAmerica.com](https://unitedconsumersofamerica
 ## Todo
 
 * Moderation assignment by root message instead of global user group
+* Crowdfunding campaigns with products for individual contributors instead of only "public-benefit" campaigns
 * Mas pruebas
 
