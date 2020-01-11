@@ -1,0 +1,46 @@
+{% extends 'proposals/base.html' %}
+{% load i18n mathfilters %}
+{% block title %}{% trans 'My Account - United Consumers of America' %}{% endblock %}
+{% block main %}
+  <h1>{% trans 'My Account' %}</h1>
+  <dl>
+    <dt>{% trans 'Username' %}</dt>
+    <dd><a href="{% url 'proposals:user_detail' user.username %}">{{ user.username }}</a></dd>
+    <dt>{% trans 'Email Address' %}</dt>
+    <dd>{{ user.email }}</dd>
+    <dt>{% trans 'Password' %}</dt>
+    <dd><a href="{% url 'password_change' %}">
+      {% trans 'Change password...' %}</a></dd>
+    {% if ENABLE_CROWDFUNDING %}
+    <dt>{% trans 'Payment Method' %}</dt>
+    <dd>
+      <p>{% if card_label %}{% blocktrans %}
+        Using card {{ card_label }}.
+      {% endblocktrans %}{% else %}
+        {% trans 'No payment method configured' %}
+      {% endif %}</p>
+      <a href="{% url 'proposals:profile_payment_method' %}">
+        {% trans 'Manage payment methods...' %}</a>
+    </dd>
+    <dt>{% trans 'Connected Stripe Account' %}</dt>
+    <dd>
+      {% if connect_account_label %}
+        <p>{% blocktrans %}
+          Stripe account {{ connect_account_label }} is currently linked.
+        {% endblocktrans %}</p>
+        <a href="{{ stripe_connect_uri }}">{% trans 'Change linked Stripe account...' %}</a>
+      {% else %}
+        <p>{% trans 'To submit bids and receive money, you must link a Stripe account.' %}</p>
+        <a href="{{ stripe_connect_uri }}">{% trans 'Link Stripe account...' %}</a>
+      {% endif %}
+    </dd>
+    <dt>{% trans 'Proposals and Bids Funded' %}</dt>
+    <dd>
+      <p>{% blocktrans with amount=uncommitted_funds_amount|div:100|floatformat:2 %}
+        ${{ amount }} in uncommitted funds
+      {% endblocktrans %}</p>
+      <a href="{% url 'proposals:profile_funds' %}">{% trans 'Initiate refund...' %}</a>
+    </dd>
+    {% endif %}
+  </dl>
+{% endblock %}

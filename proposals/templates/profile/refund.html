@@ -1,0 +1,107 @@
+{% extends "proposals/base.html" %}
+{% load i18n %}
+{% load mathfilters %}
+
+{% block title %}{% trans 'Initial Refund - United Consumers of America' %}{% endblock %}
+{% block main %}
+<form class="default" method="post">
+  <h2>{% trans 'Initiate Refund' %}</h2>
+  <fieldset>
+    <legend>{% trans 'Select Refund Sources' %}</legend>
+    <table cellspacing="0">
+      <thead>
+        <tr>
+          <th>{% trans 'Post' %}</th>
+          <th>{% trans 'Amount Available' %}</th>
+          <th>{% trans 'Amount to Refund' %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for msg in funded_msg %}
+          <tr>
+            <td><a href="{{msg.href}}">{{ msg.title }}</a></td>
+            <td>
+              {% blocktrans with amount=msg.funds_personal|div:100|floatformat:2 %}
+                ${{ amount }}
+              {% endblocktrans %}
+            </td>
+            <td>
+              <input type="number" name="msg_{{msg.pk}}" class="other-msg"
+                min="0" value="0" max="{{ msg.funds_personal|div:100 }}" step="0.01">
+              <output name="msg_{{msg.pk}}_out"></output>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="3" class="none-available">
+              {% trans 'No funds found.' %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">{% trans 'Refund Subtotal' %}</td>
+          <td><output name="subtotal">
+            {% trans 'JavaScript is required for total calculation' %}
+          </output></td>
+        </tr>
+        <tr>
+          <td colspan="2">{% trans 'Fee Amount' %}</td>
+          <td><output name="fee_amount"></output></td>
+        </tr>
+        <tr>
+          <td colspan="2">{% trans 'Total Refund' %}</td>
+          <td><output name="total"></output></td>
+        </tr>
+      </tfoot>
+    </table>
+  </fieldset>
+  {% csrf_token %}
+  <p>{% blocktrans with refund_fee=1|sub:REFUND_PROPORTION|mul:100|floatformat:"0" %}
+    Fund payments will be refunded minus a {{ refund_fee }}% fee.
+  {% endblocktrans %}</p>
+  <p>{% blocktrans %}
+    Credit card charges will be refunded in the order they were created,
+    starting with the newest charges and working backwards until the balance is
+    corrected.
+  {% endblocktrans %}</p>
+  <p>{% blocktrans %}
+    Are you sure you wish to refund these funds back to the original payment
+    method, using the source breakdown specified above?
+  {% endblocktrans %}</p>
+  <div class="submit">
+    <button type="submit">{% trans 'Yes, initiate refund' %}</button>
+  </div>
+  <script>
+    const REFUND_PROPORTION = ({{REFUND_PROPORTION}});
+    const form = document.currentScript.parentNode;
+    const proposalSliders = form.querySelectorAll('input.other-msg');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const updateTotals = () => {
+      let total = 0;
+      proposalSliders.forEach(slider => {
+        const value = parseFloat(slider.value);
+        form.elements[slider.name + '_out'].value =
+          '$' + value.toFixed(2);
+        total += value;
+      });
+
+      form.elements.subtotal.value = '$' + total.toFixed(2);
+      form.elements.fee_amount.value = '$' + (total * (1-REFUND_PROPORTION)).toFixed(2);
+      form.elements.total.value = '$' + (total * REFUND_PROPORTION).toFixed(2);
+    };
+
+    proposalSliders.forEach(slider => {
+      slider.type = 'range';
+    });
+    updateTotals();
+
+    form.addEventListener('input', updateTotals, false);
+    form.addEventListener('submit', () => {
+      submitBtn.setAttribute('disabled', '');
+    }, false);
+    //# sourceURL=refund.js
+  </script>
+</form>
+{% endblock %}

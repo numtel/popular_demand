@@ -1,0 +1,133 @@
+{% extends "proposals/base.html" %}
+{% load i18n %}
+{% load mathfilters %}
+{% load proposals_extras %}
+
+{% block title %}
+{% blocktrans with msg_title=msg.title %}
+Add Funds to "{{ msg_title }}" - United Consumers of America
+{% endblocktrans %}
+{% endblock %}
+
+{% block main %}
+<form class="default" method="post">
+  <h2>{% trans 'Confirm Funding Details' %}</h2>
+  <fieldset>
+    <legend>{% trans 'Select Funding Sources' %}</legend>
+    <table cellspacing="0">
+      <thead>
+        <tr>
+          <th>{% trans 'Source' %}</th>
+          <th>{% trans 'Amount Available' %}</th>
+          <th>{% trans 'Amount to Migrate' %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><th colspan="3" class="section">
+          {% if migrate_from_any %}
+            {% trans 'All Proposals Funded' %}{%else%}
+            {% trans 'Parent Proposals Funded' %}{%endif%}</th></tr>
+        {% for other_msg in funded_msg %}
+          <tr>
+            <td><a href="{{ other_msg.href }}">{{other_msg.title}}</a></td>
+            <td>${{ other_msg.funds_personal|div:100|floatformat:2 }}</td>
+            <td>
+              <input type="number" name="msg_{{other_msg.pk}}" class="other-msg"
+                min="0" value="0" max="{{ other_msg.funds_personal|div:100 }}" step="0.01">
+              <output name="msg_{{other_msg.pk}}_out"></output>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3" class="none-available">
+            {% if migrate_from_any %}
+              {% trans 'No funded proposals available.' %}{%else%}
+              {% trans 'No funded parent proposals available.' %}{%endif%}</td></tr>
+        {% endfor %}
+        {% if not migrate_from_any %}
+        <tr><td colspan="3" class="load-all">
+          <a href="{{page_path}}{% urlparams from_all="true" %}">
+            {% trans 'Load all funded proposals...' %}
+          </a></td></tr>
+        {% endif %}
+        <tr><th colspan="3" class="section">
+            {% trans 'Payment from Credit Card' %}</th></tr>
+        <tr>
+          <td colspan="2">{{ card_label }}</td>
+          <td>
+            <span class="input-dollar small">
+              <input name="card_amount" type="number" step="0.01"
+                min="{{MIN_FUND}}" max="{{MAX_FUND}}">
+            </span>
+          </td>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">{% trans 'Total' %}</td>
+          <td><output name="total">
+            {% trans 'JavaScript is required for total calculation' %}
+          </output></td>
+        </tr>
+        {% if msg.is_bid %}
+          <tr>
+            <td colspan="2">{% trans 'Amount remaining to reach bid threshold after payment' %}</td>
+            <td>
+              <input name="bid_remaining_og" type="hidden"
+                value="{{msg.bid_remaining}}">
+              <output name="bid_remaining">
+                ${{msg.bid_remaining|div:100|floatformat:2}}</output>
+            </td>
+          </tr>
+        {% endif %}
+      </tfoot>
+    </table>
+  </fieldset>
+  <p>{% blocktrans with msg_href=msg.href msg_title=msg.title %}
+    Are you sure you wish to migrate these funds to the post,
+    "<a href="{{ msg_href }}">{{ msg_title }}</a>,"
+    using the source breakdown specified above?
+  {% endblocktrans %}</p>
+  {% csrf_token %}
+  <div class="submit">
+    <button type="submit">{% trans 'Yes, migrate funds' %}</button>
+    <p>{% blocktrans with refund_fee=1|sub:REFUND_PROPORTION|mul:100|floatformat:"0" %}
+      Fund payments may be refunded to the original source card minus a {{ refund_fee }}% fee.
+    {% endblocktrans %}</p>
+  </div>
+  <script>
+    const form = document.currentScript.parentNode;
+    const proposalSliders = form.querySelectorAll('input.other-msg');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const updateTotals = () => {
+      const cardAmount = form.elements.card_amount.value !== '' ?
+        parseFloat(form.elements.card_amount.value) : 0;
+
+      let total = cardAmount;
+      proposalSliders.forEach(slider => {
+        const value = parseFloat(slider.value);
+        form.elements[slider.name + '_out'].value =
+          '$' + value.toFixed(2);
+        total += value;
+      });
+
+      form.elements.total.value = '$' + total.toFixed(2);
+      if('bid_remaining_og' in form.elements) {
+        form.elements.bid_remaining.value = '$' +
+          (form.elements.bid_remaining_og.value / 100 - total).toFixed(2)
+      }
+    };
+
+    proposalSliders.forEach(slider => {
+      slider.type = 'range';
+    });
+    updateTotals();
+
+    form.addEventListener('input', updateTotals, false);
+    form.addEventListener('submit', () => {
+      submitBtn.setAttribute('disabled', '');
+    }, false);
+    //# sourceURL=addFund.js
+  </script>
+</form>
+{% endblock %}
+
+

@@ -1,0 +1,43 @@
+{% extends "proposals/base.html" %}
+{% block title %}{{title}}{% endblock %}
+{% block main %}
+{% if heading_text %}
+<h1>{{ heading_text }}</h1>
+{% endif %}
+{% if root %}
+<div id="root">{% include 'msg/msg.html' with msg=root show_breadcrumbs=True %}</div>
+{% endif %}
+{% include 'msg/list.html' %}
+<script>
+document.querySelectorAll('form.vote button').forEach(button => {
+  button.addEventListener('click', event => {
+    event.preventDefault();
+    const formData = new FormData();
+    formData.append(button.name, button.value);
+    fetch('/en/ajax', {
+      method: 'POST',
+      body: formData,
+      redirect: 'manual',
+    }).then(response => {
+      if(response.ok) return response.text();
+      return null;
+    }).then(body => {
+      if(body === null) return;
+      const newScore = parseInt(body, 10);
+
+      button.form.querySelectorAll('button').forEach(otherButton => {
+        otherButton.removeAttribute('disabled');
+      });
+      button.setAttribute('disabled', '');
+
+      const pointsSpan =
+        button.closest('article').querySelector('hgroup span.points');
+      const pointMatch = pointsSpan.innerHTML.match(/^(-?\d+)/);
+      if(pointMatch) pointsSpan.innerHTML =
+        newScore + pointMatch.input.slice(pointMatch[0].length);
+    });
+  }, false);
+});
+//# sourceURL=ajaxVoting.js
+</script>
+{% endblock %}

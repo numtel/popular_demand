@@ -1,0 +1,158 @@
+{% load i18n mathfilters proposals_extras %}
+<section id="msgs">
+{% if not hide_nav %}
+  <nav>
+    <form>
+      <fieldset class="toggles">
+        <legend>{% trans 'Filter' %}</legend>
+        <input name="sort" type="hidden" value="{% if sort_mode %}{{sort_mode}}{% endif %}">
+        <input name="page" type="hidden" value="{{msgs.number}}">
+        {% if search_root %}<input name="root" type="hidden" value="{{search_root.pk}}">{%endif%}
+        {% if has_rank %}
+          <input name="q" type="hidden" value="{{search_query}}">
+        {% endif %}
+        <input type="checkbox" name="hide_pending"
+          {% if filter_mode.pending %}checked{%endif%} id="show-pending" value="true">
+        <label for="show-pending">
+          <span>{% trans 'Pending' %}</span>
+        </label>
+        <input type="checkbox" name="hide_declined"
+          {% if filter_mode.declined %}checked{%endif%} id="show-declined" value="true">
+        <label for="show-declined">
+          <span>{% trans 'Declined' %}</span>
+        </label>
+        {% if ENABLE_CROWDFUNDING %}
+        <input type="checkbox" name="hide_unmet_bids"
+          {% if filter_mode.unmet_bids %}checked{%endif%} id="show-unmet_bids" value="true">
+        <label for="show-unmet_bids">
+          <span>{% trans 'Unmet Bids' %}</span>
+        </label>
+        {% endif %}
+        {% if is_moderator %}
+          <input type="checkbox" name="hide_pending_edit"
+            {% if filter_mode.pending_edit %}checked{%endif%} id="show-pending_edit" value="true">
+          <label for="show-pending_edit">
+            <span>{% trans 'Without Edit Pending' %}</span>
+          </label>
+        {% endif %}
+        <input type="checkbox" name="hide_active"
+          {% if filter_mode.active %}checked{%endif%} id="show-active" value="true">
+        <label for="show-active">
+          <span>{% trans 'Active' %}</span>
+        </label>
+        {% if ENABLE_CROWDFUNDING %}
+        <input type="checkbox" name="hide_paid"
+          {% if filter_mode.paid %}checked{%endif%} id="show-paid" value="true">
+        <label for="show-paid">
+          <span>{% trans 'Paid' %}</span>
+        </label>
+        <input type="checkbox" name="hide_fulfilled"
+          {% if filter_mode.fulfilled %}checked{%endif%} id="show-fulfilled" value="true">
+        <label for="show-fulfilled">
+          <span>{% trans 'Fulfilled' %}</span>
+        </label>
+        <br>
+        <input type="checkbox" name="hide_comments"
+          {% if filter_mode.comments %}checked{%endif%} id="show-comments" value="true">
+        <label for="show-comments">
+          <span>{% trans 'Comments' %}</span>
+        </label>
+        <input type="checkbox" name="hide_proposals"
+          {% if filter_mode.proposals %}checked{%endif%} id="show-proposals" value="true">
+        <label for="show-proposals">
+          <span>{% trans 'Proposals' %}</span>
+        </label>
+        <input type="checkbox" name="hide_bids"
+          {% if filter_mode.bids %}checked{%endif%} id="show-bids" value="true">
+        <label for="show-bids">
+          <span>{% trans 'Bids' %}</span>
+        </label>
+        {% endif %}
+        <button type="submit">{% trans 'Update' %}</button>
+      </fieldset>
+    </form>
+    <form>
+      <fieldset class="button-chooser">
+        <legend>{% trans 'Sort Mode' %}</legend>
+        <input name="page" type="hidden" value="{{msgs.number}}">
+        {% if search_root %}<input name="root" type="hidden" value="{{search_root.pk}}">{%endif%}
+        {% if filter_mode.pending %}<input name="hide_pending" type="hidden" value="true">{% endif %}
+        {% if filter_mode.declined %}<input name="hide_declined" type="hidden" value="true">{% endif %}
+        {% if filter_mode.active %}<input name="hide_active" type="hidden" value="true">{% endif %}
+        {% if ENABLE_CROWDFUNDING %}
+        {% if filter_mode.comments %}<input name="hide_comments" type="hidden" value="true">{%endif%}
+        {% if filter_mode.proposals %}<input name="hide_proposals" type="hidden" value="true">{% endif %}
+        {% if filter_mode.bids %}<input name="hide_bids" type="hidden" value="true">{% endif %}
+        {% if filter_mode.unmet_bids %}<input name="hide_unmet_bids" type="hidden" value="true">{% endif %}
+        {% if filter_mode.paid %}<input name="hide_paid" type="hidden" value="true">{% endif %}
+        {% if filter_mode.fulfilled %}<input name="hide_fulfilled" type="hidden" value="true">{% endif %}
+        {% endif %}
+        {% sort_is_hot sort_mode has_rank as sort_is_hot %}
+        {% if has_rank %}
+          <input name="q" type="hidden" value="{{search_query}}">
+          <button type="submit" name="sort" value=""
+              {% if not sort_mode %}disabled{%endif%}>
+            {% trans 'Sort by relevancy' %}</button>{% endif %}<button
+              type="submit" name="sort" value="hot"
+            {% if sort_is_hot %}disabled{%endif%}>
+          {% trans 'Score over time' %}
+        </button><button type="submit" name="sort" value="new"
+            {% if sort_mode == 'new' %}disabled{%endif%}>
+          {% trans 'Newest' %}
+        </button><button type="submit" name="sort" value="top"
+            {% if sort_mode == 'top' %}disabled{%endif%}>
+          {% trans 'Score' %}</button>
+      </fieldset>
+    </form>
+  </nav>
+{% endif %}
+{% if msgs %}
+  <ol class="msg-index {% if skip_children %}full-width{%endif%}">
+    {% for msg in msgs %}
+      <li>
+        {% include 'msg/msg.html' with msg=msg %}
+        {% if not skip_children %}
+          {% children_sorted msg sort_mode user filter_mode as children %}
+          {% if children and max_depth == 1 %}
+            <a class="more-depth" href="{{msg.href}}">{% trans 'Browse deeper replies...' %}</a>
+          {% elif children %}
+            <details class="replies" open>
+              <summary><span class="hide-readable">{% trans 'Replies' %}<span></summary>
+              {% include 'msg/list.html' with msgs=children max_depth=max_depth|sub:1 hide_nav=True %}
+            </details>
+          {% endif %}
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+  {% if not hide_nav %}
+    <div class="pagination">
+      <span class="step-links">
+        {% if msgs.has_previous %}
+          <a href="?page=1">&laquo; {% trans 'first' %}</a>
+          <a href="?page={{ msgs.previous_page_number }}">{% trans 'previous' %}</a>
+        {% endif %}
+
+        <span class="current">
+          {% blocktrans with number=msgs.number num_pages=msgs.paginator.num_pages%}
+            Page {{ number }} of {{ num_pages }}
+          {% endblocktrans %}
+        </span>
+
+        {% if msgs.has_next %}
+          <a href="?page={{ msgs.next_page_number }}">{% trans 'next' %}</a>
+          <a href="?page={{ msgs.paginator.num_pages }}">{% trans 'last' %} &raquo;</a>
+        {% endif %}
+      </span>
+    </div>
+  {% endif %}
+{% else %}
+  <p class="no-replies">
+    {% if root %}
+      {% trans 'No replies yet.' %}
+    {% else %}
+      {% trans 'No results for query.' %}
+    {% endif %}
+  </p>
+{% endif %}
+</section>

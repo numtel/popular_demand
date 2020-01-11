@@ -1,0 +1,62 @@
+{% load static i18n %}<!DOCTYPE html>
+<html lang="{{ lang_code }}">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="stylesheet" href="{% static 'proposals/fonts.css' %}">
+  <link rel="stylesheet" href="{% static 'proposals/style.css' %}">
+  <title>{% block title %}{% trans 'United Consumers of America' %}{% endblock %}</title>
+</head>
+<body>
+  {% if messages %}
+    <ul class="session-messages">
+      {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <header>
+    <a class="logo" href="{% url 'proposals:index' %}" title="{% trans 'Return to homepage' %}">
+      <img src="{% static 'proposals/images/logo.svg' %}" alt="{% trans 'United Consumers of America Logo' %}">
+    </a>
+    <nav>
+      <form id="search" action="{% url 'proposals:msg_search' %}">
+        <input name="q" type="search" placeholder="{% trans 'Search' %}" value="{% if search_query %}{{search_query}}{%endif%}"><button type="submit" class="icon-magnifying-glass">
+          <span class="hide-readable">{% trans 'Search' %}</span>
+        </button>
+        {% if root and root.pk != ROOT_POST_ID %}
+          <label class="root">
+            <span>{% trans 'Only within descendents' %}</span>
+            <input type="checkbox" name="root" value="{{root.pk}}">
+          </label>
+        {% elif search_root %}
+          <label class="root">
+            <span>{% blocktrans with search_root_href=search_root.href search_root_title=search_root.title %}Only within decendents of <a href="{{search_root_href}}">{{search_root_title}}</a>{% endblocktrans %}</span>
+            <input type="checkbox" name="root" checked value="{{search_root.pk}}">
+          </label>
+        {% endif %}
+      </form>
+      <ul>
+        {% if user.is_authenticated %}
+          {% with notif_count=user.notifications.count %}
+            {% if notif_count %}
+              <li><a href="{% url 'proposals:notifications' %}">
+                {%blocktrans with s=notif_count|pluralize %}
+                  {{notif_count}} Notification{{s}}
+                {%endblocktrans%}
+              </a></li>
+            {% endif %}
+          {% endwith %}
+          <li><a href="{% url 'proposals:profile' %}">{% trans 'My Account' %}</a></li>
+          <li><a href="{% url 'logout' %}">{% trans 'Log Out' %}</a></li>
+        {% else %}
+          <li><a href="{% url 'login' %}">{% trans 'Log In' %}</a></li>
+          <li><a href="{% url 'proposals:signup' %}">{% trans 'Join' %}</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </header>
+  <main>{% block main %}{% endblock %}</main>
+</body>
+</html>

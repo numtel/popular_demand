@@ -1,0 +1,140 @@
+{% extends "proposals/base.html" %}
+{% load i18n mathfilters proposals_extras %}
+
+{% block title %}
+  {% if msg.id %}
+    {% blocktrans with msg_title=msg.title %}
+    Editing "{{ msg_title }}" - United Consumers of America
+    {% endblocktrans %}
+  {% else %}
+    {% trans 'Create Post - United Consumers of America' %}
+  {% endif %}
+{% endblock %}
+
+{% block main %}
+{% msg_can_update_full msg user as can_update_full %}
+{% if msg.id %}
+  {% include "msg/msg.html" with msg=msg show_breadcrumbs=True no_controls=True %}
+{% elif parent %}
+  {% include "msg/msg.html" with msg=parent show_breadcrumbs=True no_controls=True %}
+{% endif %}
+{% msg_pending_or_self msg as msg %}
+<form class="default" method="post">
+  <h2>{% if msg.id %}{% trans 'Edit Post' %}
+    {%else%}{% trans 'Submit Reply' %}{%endif%}</h2>
+  <fieldset>
+    <legend>{% trans 'Post Details' %}</legend>
+    <label>
+      <span>{% trans 'Title' %}</span>
+      <input name="title" class="full-width title" value="{{msg.title}}" maxlength="200">
+    </label>
+    <label>
+      <span>{% trans 'Text' %}</span>
+      <textarea name="text">{{msg.text}}</textarea>
+    </label>
+    <p>
+      {% trans 'Markdown with tables supported.' %}
+      <a href="https://daringfireball.net/projects/markdown/syntax"
+          target="_blank" rel="noopener">
+        {% trans 'Syntax Documentation...' %}
+        <span class="icon-popout"></span>
+      </a>
+    </p>
+    <p>{% trans 'Input <code>[TOC]</code> to insert a table-of-contents automatically generated from the hierarchy of headers.' %}</p>
+    {% if can_update_full %}
+    <label>
+      <span>{% trans 'Collaborators' %}</span>
+      <input name="collaborators" class="full-width" value="{{msg.collab_str}}">
+    </label>
+    <p>{% trans 'Comma-separated list of usernames. Empty submission will be interpreted as only allowing the current user.' %}</p>
+    <p>{% trans 'Collaborators have the ability to modify this post\'s title and text.' %}</p>
+    {% if ENABLE_CROWDFUNDING %}
+    <label class="check">
+      <input name="is_proposal" {% if msg.is_proposal %}checked{%endif%} value="true" type="checkbox">
+      <span>{% trans 'This post is a Proposal' %}</span>
+    </label>
+    <p>{% trans 'Explicitly mark this post as proposal in order to allow collecting funds and to include it in the relevant search views.' %}</p>
+    {% endif %}
+    {% endif %}
+  </fieldset>
+  {% if can_update_full and ENABLE_CROWDFUNDING %}
+  <fieldset>
+    <legend>{% trans 'Bid Details' %}</legend>
+    {% if connect_account_label %}
+      <label class="check">
+        <input {% if msg.paid or msg.fulfilled %}disabled{%endif%} name="is_bid" value="true" {% if msg.is_bid %}checked{%endif%} type="checkbox">
+        <span>{% trans 'This post is a Bid' %}</span>
+      </label>
+      <p>{% trans 'Posts can optionally include a bid which serves as a collection point for payments.' %}</p>
+      <p>{% trans 'Explicitly mark this post as a bid in order to allow receiving a payment and to include it in the relevant search views.' %}</p>
+      <p>{% trans 'If a post is both a proposal and a bid, its status as a bid will prevail.' %}</p>
+      <label>
+        <span>{% trans 'Threshold Amount' %}</span>
+        <span class="input-dollar">
+          <input {% if msg.paid or msg.fulfilled %}disabled{%endif%}
+            name="amount_threshold" type="number"
+            value="{{msg.amount_threshold}}"
+            min="{{MIN_BID}}" max="{{MAX_BID}}" step="1">
+        </span>
+      </label>
+      <p>{% blocktrans with post_creator=msg.creator.username payout_fee=1|sub:PAYOUT_PROPORTION|mul:100|floatformat:"0" %}
+        The payment will be transferred to this post's
+        original creator ({{post_creator}}) at the expiration time,
+        if the threshold amount is met, minus a {{payout_fee}}% fee.
+      {% endblocktrans %}</p>
+      <label>
+        <span>{% trans 'Expiration Date' %}</span>
+        <input {% if msg.paid or msg.fulfilled %}disabled{%endif%}
+          name="expiration_date" type="date"
+          value="{{msg.expiration|date:"Y-m-d"}}">
+      </label>
+      <label>
+        <span>{% trans 'Expiration Time' %}</span>
+        <input {% if msg.paid or msg.fulfilled %}disabled{%endif%}
+          name="expiration_time" type="time"
+          value="{{msg.expiration|time:"H:i"}}">
+      </label>
+      <p>{% trans 'UTC timezone, 00:00 (Midnight) if unspecified' %}</p>
+    {% else %}
+      {% url 'proposals:profile' as profile_path %}
+      <p>{% blocktrans %}
+        Connect a Stripe account to your <a href="{{profile_path}}">user profile</a> in order to make bids and receive payments.
+      {% endblocktrans %}</p>
+    {% endif %}
+  </fieldset>
+  {% endif %}
+  {% if is_moderator %}
+    <fieldset>
+      <legend>{% trans 'Moderator Controls' %}</legend>
+      <label>
+        <span>{% trans 'Parent Post ID' %}</span>
+        <input name="parent" value="{{parent.pk}}">
+      </label>
+      <label>
+        <span>{% trans 'Status' %}</span>
+        <select name="status">
+          <option value="1" {% if og_msg.status == 1 %}selected{%endif%}>
+            {% trans 'Pending' %}</option>
+          <option value="2" {% if og_msg.status == 2 %}selected{%endif%}>
+            {% trans 'Active' %}</option>
+          <option value="3" {% if og_msg.status == 3 %}selected{%endif%}>
+            {% trans 'Declined' %}</option>
+          <option value="4" {% if og_msg.status == 4 %}selected{%endif%}>
+            {% trans 'Deleted' %}</option>
+          <option value="5" {% if og_msg.status == 5 %}selected{%endif%}>
+            {% trans 'Paid' %}</option>
+          <option value="6" {% if og_msg.status == 6 %}selected{%endif%}>
+            {% trans 'Fulfilled' %}</option>
+        </select>
+      </label>
+    </fieldset>
+  {% else %}
+    <input name="parent" type="hidden" value="{{parent.pk}}">
+  {% endif %}
+  {% csrf_token %}
+  <div class="submit">
+    <button type="submit">{% trans 'Save' %}</button>
+  </div>
+</form>
+{% endblock %}
+

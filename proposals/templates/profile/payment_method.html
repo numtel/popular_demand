@@ -1,0 +1,66 @@
+{% extends 'proposals/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans 'Payment Method - United Consumers of America' %}{% endblock %}
+{% block main %}
+<h1>{% trans 'Payment Method' %}</h1>
+<form method="post" class="default">
+  <fieldset>
+    <legend>
+      {% if card_id %}
+        {% trans 'Change Payment Method' %}
+      {% else %}
+        {% trans 'Add Payment Method' %}
+      {% endif %}
+    </legend>
+    {% if card_label %}
+      <p>{% blocktrans %}
+        Your current payment method is {{ card_label }}.
+      {% endblocktrans %}</p>
+    {% else %}
+      <p>{% trans 'A payment source is required to fund proposals.' %}</p>
+    {% endif %}
+    <label>
+      <span>{% trans 'New Card Details' %}</span>
+      <div></div>
+    </label>
+    <div class="submit">
+      <noscript>{% trans 'JavaScript is required to modify a payment method.' %}</noscript>
+      <p>{% trans 'I authorize United Consumers of America to send instructions to the financial institution that issued my card to take payments from my card account in accordance with the terms and conditions.' %}</p>
+      <button type="submit" disabled>{% trans 'Use this Card' %}</button>
+    </div>
+  </fieldset>
+  {% csrf_token %}
+  <input name="seti_id" type="hidden">
+  <input name="payment_method_id" type="hidden">
+  {% if next %}<input name="next" type="hidden" value="{{ next }}">{% endif %}
+  <script src="https://js.stripe.com/v3/"></script>
+  <script>
+    const stripe = Stripe('{{ STRIPE_PUBLISHABLE_KEY }}');
+    const form = document.currentScript.parentNode;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.removeAttribute('disabled');
+    const cardEl = stripe.elements().create('card');
+    cardEl.mount(form.querySelector('label div'));
+
+    form.addEventListener('submit', function(event) {
+      // On the first submission pass, fill in the hidden inputs
+      if(form.elements.seti_id.value === '') {
+        event.preventDefault();
+        submitBtn.setAttribute('disabled', '');
+        stripe.handleCardSetup('{{ client_secret }}', cardEl).then(result => {
+          if(result.error) {
+            alert(result.error.message);
+            submitBtn.removeAttribute('disabled');
+          } else {
+            form.elements.seti_id.value = result.setupIntent.id;
+            form.elements.payment_method_id.value = result.setupIntent.payment_method;
+            form.submit();
+          }
+        });
+      }
+    }, false);
+    //# sourceURL=paymentMethod.js
+  </script>
+</form>
+{% endblock %}

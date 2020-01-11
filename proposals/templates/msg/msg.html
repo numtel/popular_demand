@@ -1,0 +1,169 @@
+{% load i18n %}
+{% load mathfilters %}
+{% load proposals_extras %}
+
+{% msg_can_update msg user as msg_can_update %}
+{% msg_can_update_full msg user as msg_can_update_full %}
+{% if show_breadcrumbs and msg.parent %}
+<nav>
+  <ol class="breadcrumbs">
+    {% for ancestor in msg.ancestors %}
+    <li><a href="{{ancestor.href}}">{{ancestor.title}}</a></li>
+    {% endfor %}
+  </ol>
+</nav>
+{% endif %}
+<article class="msg">
+  {% if not no_controls %}
+    <form class="vote" method="post">
+      {% msg_my_vote msg user as my_vote %}
+      <fieldset>
+        <legend class="hide-readable">{% trans 'Quality Vote' %}</legend>
+        <button
+          type="submit"
+          name="upvote"
+          class="up icon-arrow-bold-up"
+          title="Positive Quality"
+          {% if my_vote == 1 %}disabled{% endif %}
+          value="{{msg.pk}}"><span class="hide-readable">{% trans 'Positive' %}</span></button>
+        <button
+          type="submit"
+          name="neutralvote"
+          class="neutral icon-neutral"
+          title="Neutral Quality"
+          {% if my_vote == 0 %}disabled{% endif %}
+          value="{{msg.pk}}"><span class="hide-readable">{% trans 'Neutral' %}</span></button>
+        <button
+          type="submit"
+          name="downvote"
+          class="down icon-arrow-bold-down"
+          title="Negative Quality"
+          {% if my_vote == -1 %}disabled{% endif %}
+          value="{{msg.pk}}"><span class="hide-readable">{% trans 'Negative' %}</span></button>
+        {% csrf_token %}
+      </fieldset>
+    </form>
+  {% endif %}
+  <div class="msg-display">
+    <hgroup>
+      <h1><a href="{{msg.href}}">{{msg.title}}</a></h1>
+      <p>
+        {% if show_notification_klass %}
+          {% my_notifications msg user as notifs %}
+          {% for notif in notifs %}
+            <form class="notification {{notif.klass_class}}" method="post">
+              {% csrf_token %}
+              <button type="submit" title="{% trans 'Dismiss Notification' %}"
+                  name="dismiss_notif" value="{{notif.pk}}">
+                {% if notif.new_reply %}
+                  {% trans 'New Reply' %}
+                {% elif notif.bid_paid %}
+                  {% trans 'Bid Paid' %}
+                {% elif notif.bid_fulfilled %}
+                  {% trans 'Bid Fulfilled' %}
+                {% endif %}
+              </button>
+            </form>
+          {% endfor %}
+        {% endif %}
+        {% if msg.pending %}
+          <span class="status badge pending">{% trans 'Pending' %}</span>
+        {% elif msg.declined %}
+          <span class="status badge declined">{% trans 'Declined' %}</span>
+        {% elif msg.paid %}
+          <span class="status badge paid">{% trans 'Paid' %}</span>
+        {% elif msg.fulfilled %}
+          <span class="status badge fulfilled">{% trans 'Fulfilled' %}</span>
+        {% endif %}
+        <span class="points">{% blocktrans with score=msg.vote_total make_plural=msg.vote_total|pluralize %}{{score}} point{{make_plural}}{% endblocktrans %}</span>
+        <span class="collabs"><span>{% trans 'from' %}</span>
+          {% for collab in msg.active_collabs %}
+            <a href="{% url 'proposals:user_detail' collab.username %}">{{collab.username}}</a>{% endfor %}</span>
+        <time datetime="{{ msg.created|date:'Y-m-d' }}T{{ msg.created|time:'G:i:sO' }}">
+          {% blocktrans with duration=msg.created|timesince %}
+            created {{ duration }} ago{% endblocktrans %}</time>
+        {% if msg.previous_versions.count %}
+          <time datetime="{{ msg.updated|date:'Y-m-d' }}T{{ msg.updated|time:'G:i:sO' }}">
+            {% blocktrans with duration=msg.updated|timesince %}
+              updated {{ duration }} ago{% endblocktrans %}</time>
+        {% endif %}
+        {% if ENABLE_CROWDFUNDING %}
+        {% if msg.is_proposal or msg.is_bid %}
+          <div class="funding {% if msg.is_bid %}bid{%else%}proposal{%endif%}">
+            <span class="fund-type">
+              {% if msg.is_bid %}
+                {% trans 'Bid' %}
+              {% else %}
+                {% trans 'Proposal' %}
+              {% endif %}
+            </span>
+            {% if msg.is_bid and msg.active %}
+              <span class="threshold">
+                {% blocktrans with msg_amount_threshold=msg.amount_threshold|floatformat:"2" msg_amount_remaining=msg.amount_threshold|mul:100|sub:msg.funds_collected_all|div:100|floatformat:"2" msg_exp_date=msg.expiration|date:'Y-m-d' msg_exp_time=msg.expiration|time:'G:i:sO' msg_exp_until=msg.expiration|timeuntil %}
+                seeking ${{msg_amount_threshold}} (${{msg_amount_remaining}} remaining) within
+                <time datetime="{{msg_exp_date}}T{{msg_exp_time}}">{{msg_exp_until}}</time>
+                {% endblocktrans %}
+              <span>
+            {% endif %}
+            <span class="amount">
+              {% msg_funds_personal msg user as personal_funds_cents %}
+              {% blocktrans with total_raised=msg.funds_collected_all|div:100|floatformat:"2" personal_funds=personal_funds_cents|div:100|floatformat:"2" %}
+              Raised ${{ total_raised }} (${{ personal_funds }} committed personally)
+              {% endblocktrans %}
+            </span>
+            {% if msg.active %}
+            <a href="{% url 'proposals:msg_fund' msg.pk %}">
+              {% trans 'Migrate funds...' %}</a>
+            {% endif %}
+          </div>
+        {% endif %}
+        {% endif %}
+    </hgroup>
+    <div class="body">
+      {% if msg_can_update and msg.has_pending_edit %}
+        <h2>{% trans 'Pending Edit' %}</h2>
+        {% pending_diff msg msg_can_update_full as pending_diff_html %}
+        {{ pending_diff_html|safe }}
+      {% else %}
+        {{msg.text_html|safe}}
+      {% endif %}
+    </div>
+    {% if not no_controls %}
+      <div class="controls">
+        {% if is_moderator %}
+          <form method="post">
+            {% csrf_token %}
+            {% if msg.pending %}
+            <button type="submit" name="approve" value="{{msg.pk}}">
+              {% trans 'Set as Active' %}</button>
+            <button type="submit" name="decline" value="{{msg.pk}}">
+              {% trans 'Set as Declined' %}</button>
+            {% endif %}
+            {% if msg.paid %}
+            <button type="submit" name="fulfilled" value="{{msg.pk}}">
+              {% trans 'Set as Fulfilled' %}</button>
+            {% endif %}
+            {% if msg.bid_pending_payout %}
+            <button type="submit" name="bid_payout" value="{{msg.pk}}">
+              {% trans 'Pay Bidder' %}</button>
+            {% endif %}
+            {% if msg.has_pending_edit %}
+              <button type="submit" name="approve_edit" value="{{msg.pk}}">
+                {% trans 'Approve Edit' %}</button>
+            {% endif %}
+          </form>
+        {% endif %}
+        <form>
+          {% if msg_can_update %}
+            <button type="submit" formaction="{% url 'proposals:msg_edit' %}"
+              name="msg" value="{{msg.pk}}">
+              {% trans 'Edit...' %}</button>
+          {% endif %}
+          <button type="submit" formaction="{% url 'proposals:msg_create' %}"
+            name="parent" value="{{msg.pk}}">
+            {% trans 'Reply...' %}</button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+</article>

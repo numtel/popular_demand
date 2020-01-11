@@ -1,0 +1,7 @@
+Django==2.2.5
+markdown==3.1.1
+psycopg2==2.7.5
+stripe==2.37.2
+django-mathfilters==0.4.0
+gunicorn==20.0.4
+whitenoise==5.0.1

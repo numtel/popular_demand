@@ -1,0 +1,35 @@
+version: "2"
+services:
+  app:
+    build: .
+    depends_on:
+      - db
+    links:
+      - db
+    volumes:
+      - .:/server
+    ports:
+      - 8000:8000
+    environment:
+      UPLOAD_DIR: uploads/
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      POSTGRES_USER: test1
+      POSTGRES_PASSWORD: test2
+      POSTGRES_DB: pop_dem
+      SECRET_KEY: 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+      DEBUG: 'yes'
+      HOSTNAME: 'localhost'
+      ENABLE_CROWDFUNDING: 'no'
+      STRIPE_PUBLISHABLE_KEY: "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      STRIPE_SECRET_KEY: "sk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      STRIPE_CONNECT_CLIENT_ID: 'ca_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+      STRIPE_PAYMENT_INTENT_RETURN_URI: 'http://localhost:8000/stripe-payment-return'
+      STRIPE_CONNECT_REDIRECT_URI: 'http://localhost:8000/stripe-connect-return'
+      STRIPE_ENDPOINT_SECRET: 'whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+  db:
+    image: postgres:11-alpine
+    environment:
+      POSTGRES_USER: test1
+      POSTGRES_PASSWORD: test2
+      POSTGRES_DB: pop_dem
