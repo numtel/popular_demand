@@ -39,3 +39,8 @@ The live demo at [UnitedConsumersOfAmerica.com](https://unitedconsumersofamerica
 * Crowdfunding campaigns with products for individual contributors instead of only "public-benefit" campaigns
 * Mas pruebas
 
+## Design Considerations
+
+The idea is for anybody to easily be able to implement a consumer union in a space which they are already embedded. Although Stripe rejected the site with far-reaching branding, they may be more amenable to tighter regions and niches. Other payment processor implementations are welcome.
+
+The barebones aesthetic simplifies development in order to lower the barrier of entry. Search and hierarchical views with adequate filtering supply the necessary windows into the data.
