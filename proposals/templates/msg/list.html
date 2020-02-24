@@ -2,6 +2,7 @@
 <section id="msgs">
 {% if not hide_nav %}
   <nav>
+    {% if user.is_authenticated %}
     <form>
       <fieldset class="toggles">
         <legend>{% trans 'Filter' %}</legend>
@@ -71,6 +72,7 @@
         <button type="submit">{% trans 'Update' %}</button>
       </fieldset>
     </form>
+    {% endif %}
     <form>
       <fieldset class="button-chooser">
         <legend>{% trans 'Sort Mode' %}</legend>
